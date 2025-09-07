@@ -4,6 +4,61 @@ const API_URL_POPULAR =
 const API_URL_SEARCH =
   "https://kinopoiskapiunofficial.tech/api/v2.1/films/search-by-keyword?keyword=";
 
+const API_URL_ID = "https://kinopoiskapiunofficial.tech/api/v2.2/films/";
+
+function showDataFilmID(data) {
+  const modalEl = document.querySelector(".modal");
+
+  modalEl.innerHTML = `
+  <div class="modal__card">
+    <img class="modal__movie-backdrop" src=${data.posterUrlPreview} alt="">
+    <h2>
+      <span class="modal__movie-title">${data.nameRu}</span>
+      <span class="modal__movie-release-year">${data.year}</span>
+    </h2>
+    <ul class="modal__movie-info">
+      <div class="loader"></div>
+      <li class="modal__movie-genre">${data.genres.map(
+        (genre) => ` ${genre.genre}`
+      )}</li>
+      <li class="modal__movie-runtime">${data.filmLength} минут</li>
+      <li>Сайт: <a class="modal__movie-site">${data.webUrl}</a></li>
+      <li class="modal__movie-overview">${data.description}</li>
+    </ul>
+    <button type="button" class="modal__button-close">Закрыть</button>
+  </div>
+`;
+  modalEl.classList.add("modal--show");
+  document.body.classList.add("stop-scrolling");
+  const modalBtnClose = modalEl.querySelector(".modal__button-close");
+  modalBtnClose.addEventListener("click", function (e) {
+    modalEl.classList.remove("modal--show");
+    document.body.classList.remove("stop-scrolling");
+  });
+
+  window.addEventListener("click", (event) => {
+    if (event.target === modalEl) {
+      modalEl.classList.remove("modal--show");
+      document.body.classList.remove("stop-scrolling");
+    }
+  });
+}
+
+async function fetchData(url) {
+  const resp = await fetch(url, {
+    headers: {
+      "Content-Type": "application/json",
+      "X-API-KEY": API_KEY,
+    },
+  });
+  return resp.json();
+}
+
+async function getMovieID(url) {
+  const respData = await fetchData(url);
+  showDataFilmID(respData);
+}
+
 getMovies(API_URL_POPULAR);
 
 function getClassByRate(rating) {
@@ -17,15 +72,8 @@ function getClassByRate(rating) {
 }
 
 async function getMovies(url) {
-  const resp = await fetch(url, {
-    headers: {
-      "Content-Type": "application/json",
-      "X-API-KEY": API_KEY,
-    },
-  });
-  const respData = await resp.json();
+  const respData = await fetchData(url);
 
-  console.log(respData);
   showMovies(respData);
 }
 
@@ -34,7 +82,7 @@ function showMovies(data) {
   moviesEl.innerHTML = "";
   data.films.forEach((film) => {
     const cartFilm = document.createElement("div");
-
+    cartFilm.id = film.filmId;
     cartFilm.classList.add("movie");
     cartFilm.innerHTML = `
     <div class="movie__cover-inner">
@@ -62,8 +110,10 @@ function showMovies(data) {
           : ""
       }
     </div>`;
+
     moviesEl.append(cartFilm);
   });
+  openModal();
 }
 
 const form = document.querySelector("form");
@@ -71,7 +121,22 @@ const search = document.querySelector(".header__search");
 
 form.addEventListener("submit", function (event) {
   event.preventDefault();
-  const url = `https://kinopoiskapiunofficial.tech/api/v2.1/films/search-by-keyword?keyword=${search.value}`;
+  const url = `${API_URL_SEARCH}${search.value}`;
   getMovies(url);
   search.value = "";
 });
+
+// Modal
+function openModal() {
+  const moviesEl = document.querySelector(".movies");
+
+  moviesEl.addEventListener("click", function (e) {
+    const movie = e.target.closest(".movie");
+    const url = `${API_URL_ID}${movie.id}`;
+
+    if (movie) {
+      console.log(movie.id);
+      getMovieID(url);
+    }
+  });
+}
